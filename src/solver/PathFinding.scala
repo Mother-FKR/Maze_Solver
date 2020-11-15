@@ -14,7 +14,6 @@ object PathFinding {
     val filedMap: List[List[Int]] = mapFilter(map, "ground")
     val adjacencyList: Map[List[Int], List[List[Int]]] = getAdjacencyList(filedMap)
     val distance: Map[List[Int], Int] = getDistance(start, adjacencyList)
-    println(distance)
     val path: List[List[Int]] = getPath(List(end.x, end.y), adjacencyList, distance)
 
     for (tile <- path) {
@@ -107,7 +106,7 @@ object PathFinding {
 
     var explored: Set[List[Int]] = Set(startPoint)
 
-    var distances: Int = 1
+    var distances: Int = 0
 
     var distance: Map[List[Int], Int] = Map()
     distance += startPoint -> 0
@@ -119,12 +118,12 @@ object PathFinding {
       val tileToExplore = toExplore.pop()
       for (neighbor <- adjacencyList(tileToExplore)) {
         if (!explored.contains(neighbor)) {
+          println("exploring: " + neighbor)
           distance += neighbor -> distances
           toExplore.push(neighbor)
           explored = explored + neighbor
         }
       }
-      distances += 1
     }
 
     distance
