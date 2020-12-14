@@ -68,7 +68,7 @@ class TestVelocity extends FunSuite {
     // Sample Test Case 4
     // A path of (11,12) -> (10,12) -> (9,12) -> (9,13) -> (9,14) -> (10,14)
     // A location of (10.9, 14.52)
-    val result4: PhysicsVector = new PhysicsVector(0, 0, 0)
+    val result4: PhysicsVector = new PhysicsVector(-5, 0, 0)
     val path4: List[GridLocation] = List(
       new GridLocation(11, 12),
       new GridLocation(10, 12),

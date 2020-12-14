@@ -3,20 +3,23 @@ package solver
 import maze.{GridLocation, MapTile, PhysicsVector}
 
 import scala.collection.mutable
+import scala.collection.immutable.ListMap
 
 
 object PathFinding {
 
   def findPath(start: GridLocation, end: GridLocation, map: List[List[MapTile]]): List[GridLocation] = {
 
-    val pathInGridLocation: List[GridLocation] = List()
+    var pathInGridLocation: List[GridLocation] = List()
     val filedMap: List[List[Int]] = mapFilter(map, "ground")
     val adjacencyList: Map[List[Int], List[List[Int]]] = getAdjacencyList(filedMap)
     val distance: Map[List[Int], Int] = getDistance(start, adjacencyList)
-    val path: List[List[Int]] = getPath(List(end.x, end.y), adjacencyList, distance)
+    val sortedDistance = ListMap(distance.toSeq.sortWith(_._2 < _._2):_*)
+    val path: List[List[Int]] = getPath(List(start.x, start.y), List(end.x, end.y), adjacencyList, sortedDistance)
 
     for (tile <- path) {
-      pathInGridLocation :+ new GridLocation(tile.head, tile(1))
+      //println("Tile: " + tile + "  x: " + tile.head + "  y: " + tile(1))
+      pathInGridLocation = pathInGridLocation :+ new GridLocation(tile.head, tile(1))
     }
 
     pathInGridLocation
@@ -118,13 +121,13 @@ object PathFinding {
    * @return return the map with only ground
    */
   def mapFilter(map: List[List[MapTile]], filterObject: String): List[List[Int]] = {
-    val maxX: Int = map.length
-    val maxY: Int = map.head.length
+    val maxY: Int = map.length
+    val maxX: Int = map.head.length
     var result: List[List[Int]] = List()
 
-    for (x <- 0 until maxX) {
-      for (y <- 0 until maxY) {
-        if (map.apply(x).apply(y).tileType == filterObject) {
+    for (y <- 0 until maxY) {
+      for (x <- 0 until maxX) {
+        if (map.apply(y).apply(x).tileType == filterObject) {
           result = result :+ List(x, y)
         }
       }
@@ -141,62 +144,52 @@ object PathFinding {
   def getDistance(start: GridLocation, adjacencyList: Map[List[Int], List[List[Int]]]): Map[List[Int], Int] = {
 
     val startPoint: List[Int] = List(start.x, start.y)
+
     var explored: Set[List[Int]] = Set(startPoint)
-    var distances: Int = 1
-    var level: List[List[List[Int]]] = List(List(startPoint))
+
     var distance: Map[List[Int], Int] = Map()
     distance += startPoint -> 0
+
     val toExplore: mutable.Queue[List[Int]] = new mutable.Queue()
     toExplore.enqueue(startPoint)
 
     while (toExplore.nonEmpty) {
-
       val tileToExplore = toExplore.dequeue()
-
-      //println(tileToExplore + "has neighbor-> " + adjacencyList(tileToExplore))
-
       for (neighbor <- adjacencyList(tileToExplore)) {
         if (!explored.contains(neighbor)) {
-
-          //println("exploring: " + neighbor + ", distance: " + distances)
-
-          for (n <- level.indices) {
-            var levelCollector: List[List[Int]] = List()
-            for (levelTile <- level(n)) {
-              if (adjacencyList(levelTile).contains(neighbor)) {
-                //println("neighbor: " + adjacencyList(levelTile) + ", has " + neighbor)
-                distances = n + 1
-                levelCollector = levelCollector ::: adjacencyList(levelTile)
+          for (level <- distance.keys) {
+            if (adjacencyList(level).contains(neighbor)){
+              //println("Node:" + neighbor + "   Distance:" + (distance(level).toInt + 1))
+              if (!distance.contains(neighbor)){
+                distance += neighbor -> (distance(level) + 1)
+              } else if (distance(level) + 1 < distance(neighbor)){
+                distance += neighbor -> (distance(level) + 1)
               }
             }
-            level = level :+ levelCollector
           }
-
-          distance += neighbor -> distances
           toExplore.enqueue(neighbor)
           explored = explored + neighbor
         }
       }
     }
-
     distance
-
   }
 
-  def getPath(end: List[Int], adjacencyList: Map[List[Int], List[List[Int]]], distance: Map[List[Int], Int]): List[List[Int]] = {
+  def getPath(start: List[Int], end: List[Int], adjacencyList: Map[List[Int], List[List[Int]]], distance: Map[List[Int], Int]): List[List[Int]] = {
     var pathDistance: Int = distance(end) - 1
     var path = List(end)
+    var next_tile = end
 
     while (pathDistance > 0) {
-      for (tile <- distance.keys) {
-        if (adjacencyList(path.head).contains(tile)) {
+      for (tile <- distance.keys)  {
+        if (distance(tile) == pathDistance && adjacencyList(tile).contains(next_tile)) {
           path = tile +: path
+          next_tile = tile
           pathDistance -= 1
-        } else {
-          return path
         }
       }
     }
+    path = start +: path
     path
   }
 
